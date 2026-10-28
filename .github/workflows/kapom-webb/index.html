@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https:; img-src 'self' data:; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#071a33">
+<title>เชื่อมบัญชี Minecraft — Kapom</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <span class="brand">Kapom</span>
+</header>
+
+<main class="layout">
+  <section class="intro">
+    <h1>เชื่อมบัญชี Minecraft กับบัญชีร้านค้า</h1>
+    <p class="lead">ยืนยันว่าตัวละครในเกมเป็นของคุณจริง ด้วยคำสั่งที่พิมพ์ในเซิร์ฟเวอร์</p>
+    <ol class="steps">
+      <li>กรอกชื่อ Minecraft แล้วกดเริ่มยืนยัน</li>
+      <li>เข้าเซิร์ฟเวอร์ <b id="serverAddr">Kapom</b> ด้วยชื่อเดียวกัน</li>
+      <li>พิมพ์คำสั่งที่เว็บแสดงในแชต แล้วรอหน้านี้เปลี่ยนเป็น Verified</li>
+    </ol>
+    <p class="note">การยืนยันนี้ใช้ระบุตัวตนเท่านั้น ไม่ได้ให้ไอเทมหรือยศ และไม่เกี่ยวกับการชำระเงิน</p>
+  </section>
+
+  <section class="panel" aria-live="polite" aria-busy="false" id="panel">
+
+    <!-- loading -->
+    <div class="view" id="v-loading"><p class="muted">กำลังตรวจสอบสถานะ…</p></div>
+
+    <!-- not signed in -->
+    <div class="view" id="v-auth" hidden>
+      <h2>ต้องเข้าสู่ระบบก่อน</h2>
+      <p class="muted">เซสชันของคุณหมดอายุหรือยังไม่ได้เข้าสู่ระบบร้านค้า เข้าสู่ระบบแล้วกลับมาที่หน้านี้</p>
+      <form class="stack" id="devForm" hidden>
+        <label for="devToken">Token สำหรับทดสอบ</label>
+        <input id="devToken" type="password" autocomplete="off" spellcheck="false" placeholder="วาง JWT ที่ได้จาก make-token">
+        <button type="submit" class="btn ghost">ใช้ token นี้</button>
+      </form>
+    </div>
+
+    <!-- start -->
+    <form class="view" id="v-none" hidden novalidate>
+      <h2>เริ่มยืนยันบัญชี</h2>
+      <label for="mcName">ชื่อ Minecraft</label>
+      <input id="mcName" name="mcName" type="text" inputmode="text" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="16" placeholder="เช่น Steve" aria-describedby="nameHint nameErr">
+      <p class="hint" id="nameHint">3–16 ตัว ใช้ได้เฉพาะ A–Z, 0–9 และ _</p>
+      <p class="err" id="nameErr" role="alert" hidden></p>
+      <button type="submit" class="btn primary" id="startBtn">เริ่มยืนยันบัญชี</button>
+    </form>
+
+    <!-- pending -->
+    <div class="view" id="v-pending" hidden>
+      <div class="badge pending">Pending</div>
+      <h2>พิมพ์คำสั่งนี้ในเกม</h2>
+      <p class="muted">เข้าเซิร์ฟเวอร์ด้วยชื่อ <b id="pName"></b> แล้วส่งในแชต</p>
+
+      <div class="chat" id="chatBar">
+        <code class="cmd" id="cmd"><span class="slash">/</span><span class="verb">verify</span> <span class="code" id="cmdCode"></span></code>
+        <button type="button" class="btn copy" id="copyBtn">คัดลอก</button>
+        <div class="drain" aria-hidden="true"><i id="drain"></i></div>
+      </div>
+
+      <p class="timer">หมดอายุใน <b id="timer">5:00</b></p>
+      <p class="err" id="pendErr" role="alert" hidden></p>
+      <button type="button" class="btn ghost" id="restartBtn">ขอรหัสใหม่</button>
+    </div>
+
+    <!-- pending, but code not available (page reloaded) -->
+    <div class="view" id="v-lost" hidden>
+      <div class="badge pending">Pending</div>
+      <h2>มีคำขอที่ยังไม่ได้ยืนยัน</h2>
+      <p class="muted">เพื่อความปลอดภัย รหัสแสดงได้เฉพาะตอนสร้างเท่านั้น ขอรหัสใหม่สำหรับชื่อ <b id="lName"></b> ได้เลย รหัสเดิมจะใช้ไม่ได้</p>
+      <button type="button" class="btn primary" id="lostBtn">ขอรหัสใหม่</button>
+    </div>
+
+    <!-- verified -->
+    <div class="view" id="v-verified" hidden>
+      <div class="badge ok">Verified</div>
+      <h2 id="vName"></h2>
+      <p class="muted">เชื่อมบัญชีแล้วเมื่อ <span id="vDate"></span></p>
+      <p class="hint">ต้องการยกเลิกการเชื่อม พิมพ์ <code>/unlink</code> ในเกมแล้วยืนยัน</p>
+      <button type="button" class="btn ghost" id="refreshBtn">ตรวจสอบสถานะอีกครั้ง</button>
+    </div>
+
+    <!-- expired -->
+    <div class="view" id="v-expired" hidden>
+      <div class="badge warn">Expired</div>
+      <h2>รหัสหมดอายุแล้ว</h2>
+      <p class="muted">รหัสมีอายุ 5 นาทีและใช้ได้ครั้งเดียว ขอรหัสใหม่เพื่อลองอีกครั้ง</p>
+      <button type="button" class="btn primary" id="expiredBtn">ขอรหัสใหม่</button>
+    </div>
+
+  </section>
+</main>
+
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
